@@ -79,7 +79,10 @@ Pinboard.load = function(onsuccess) {
   };
 };
 
-Pinboard.store = function(posts) {
+Pinboard.store = function(posts, force) {
+  if(force) {
+    Pinboard.posts = [];
+  }
   if(posts.length === 0) {
     return;
   }
@@ -106,7 +109,7 @@ Pinboard.update = function(user, password, onsuccess, onerror, fromDt) {
   request.onreadystatechange = function() {
     if(request.readyState == 4) {
       if(request.status == 200) {
-        Pinboard.store(JSON.parse(request.responseText));
+        Pinboard.store(JSON.parse(request.responseText), !fromDt);
         onsuccess(request.statusText);
       }
       else {
@@ -148,13 +151,13 @@ Pinboard.logout = function() {
   Pinboard.cancelAutoUpdate();
 };
 
-Pinboard.autoUpdate = function(onsuccess, onerror) {
+Pinboard.autoUpdate = function(onsuccess, onerror, force) {
   Pinboard.updateTimer = undefined;
   if(!Pinboard.loggedIn()) {
     return;
   }
   var login = JSON.parse(localStorage.login);
-  var fromDt = Pinboard.posts.length >= 1 ? Pinboard.posts[0].time : undefined;
+  var fromDt = !force && Pinboard.posts.length >= 1 ? Pinboard.posts[0].time : undefined;
   Pinboard.update(login.user, login.password,
     function(message) {
       Pinboard.retryCount = 0;
@@ -176,7 +179,7 @@ Pinboard.autoUpdate = function(onsuccess, onerror) {
 
 Pinboard.forceUpdate = function(onsuccess, onerror) {
   Pinboard.cancelAutoUpdate();
-  Pinboard.autoUpdate(onsuccess, onerror);
+  Pinboard.autoUpdate(onsuccess, onerror, true);
 };
 
 Pinboard.user = function() {
@@ -214,6 +217,8 @@ Pinboard.initialize(function() {
   if(!Pinboard.loginRequired()) {
     return;
   }
-  Pinboard.updateTimer = setTimeout(Pinboard.autoUpdate, 15 * 60 * 1000);
+  Pinboard.updateTimer = setTimeout(function() {
+    Pinboard.autoUpdate(undefined, undefined, true);
+  }, 5 * 60 * 1000);
 });
 
