@@ -13,7 +13,7 @@
   },
   "permissions": [
     "tabs",
-    "https://api.pinboard.in/v1/all"
+    "https://api.pinboard.in/v1/posts/all"
   ],
   "update_url": "http://monoweb.info/chrome/extension/pinboard-search/updates.xml"
 }
