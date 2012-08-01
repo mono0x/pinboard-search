@@ -15,19 +15,10 @@ class ExtensionMaker
       :ex_dir     => @config['source_dir'],
       :pkey       => @config['pem_file'],
       :crx_output => @config['crx_file'])
-    open(@config['update_file'], 'w') do |f|
-      f << <<-EOS
-<?xml version='1.0' encoding='UTF-8'?>
-<gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
-  <app appid='#{@config['appid']}'>
-    <updatecheck codebase='#{@config['codebase']}' version='#{@manifest['version']}' />
-  </app>
-</gupdate>
-      EOS
-    end
   end
 
   def zip
+    FileUtils.rm @config['zip_file']
     CrxMake.zip(
       :ex_dir     => @config['source_dir'],
       :pkey       => @config['pem_file'],

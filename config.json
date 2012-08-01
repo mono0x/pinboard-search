@@ -1,10 +1,8 @@
 {
   "name": "Pinboard Search",
   "appid": "cpafmlkmakloihfnemkifakaficmdhhf",
-  "codebase": "http://monoweb.info/chrome/extension/pinboard-search/PinboardSearch.crx",
   "source_dir": "src",
   "pem_file": "PinboardSearch.pem",
   "crx_file": "output/PinboardSearch.crx",
-  "update_file": "output/updates.xml",
   "zip_file": "output/PinboardSearch.zip"
 }
