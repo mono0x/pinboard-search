@@ -8,7 +8,5 @@ Utils.buildQuery = function(params) {
 };
 
 Utils.escapeHtml = function(text) {
-  var pre = document.createElement('pre');
-  pre.textContent = text;
-  return pre.innerHTML;
+  return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
