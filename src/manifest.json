@@ -18,6 +18,8 @@
   },
   "permissions": [
     "tabs",
+    "storage",
+    "unlimitedStorage",
     "https://api.pinboard.in/v1/posts/all"
   ]
 }

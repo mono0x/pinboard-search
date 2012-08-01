@@ -39,60 +39,58 @@ chrome.omnibox.setDefaultSuggestion({
 });
 
 chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
-  if(!Pinboard.loginRequired()) {
-    return;
-  }
+  Pinboard.loginRequired(function(user) {
+    if(Pinboard.posts.length === 0) {
+      return;
+    }
 
-  if(Pinboard.posts.length === 0) {
-    return;
-  }
+    var post, str, highlight, matcher;
+    var limit = 5;
+    var query = [];
+    var offset = 0;
 
-  var post, str, highlight, matcher;
-  var limit = 5;
-  var query = [];
-  var offset = 0;
+    if(!text.match(/^(.*?)(\.*)$/)) {
+      return;
+    }
 
-  if(!text.match(/^(.*?)(\.*)$/)) {
-    return;
-  }
+    offset = currentOffset = RegExp.$2.length * limit;
+    if(currentQuery != RegExp.$1) {
+      currentQuery = RegExp.$1;
+      searchResult = [];
+      searchOffset = 0;
+    }
 
-  offset = currentOffset = RegExp.$2.length * limit;
-  if(currentQuery != RegExp.$1) {
-    currentQuery = RegExp.$1;
-    searchResult = [];
-    searchOffset = 0;
-  }
+    query = currentQuery.split(/\s/).map(function(word) {
+      return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
+    });
+    highlight = new RegExp(currentQuery.split(/\s/).map(function(word) {
+      return word.replace(/\W/g, '\\$&');
+    }).join('|'), 'ig');
 
-  query = currentQuery.split(/\s/).map(function(word) {
-    return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
-  });
-  highlight = new RegExp(currentQuery.split(/\s/).map(function(word) {
-    return word.replace(/\W/g, '\\$&');
-  }).join('|'), 'ig');
+    if(query.length === 0) {
+      return;
+    }
 
-  if(query.length === 0) {
-    return;
-  }
+    if(searchResult.length < offset + limit) {
+      matcher = function(q) { return str.match(q); };
+      while(searchOffset < Pinboard.posts.length) {
+        post = Pinboard.posts[searchOffset];
+        searchOffset += 1;
 
-  if(searchResult.length < offset + limit) {
-    matcher = function(q) { return str.match(q); };
-    while(searchOffset < Pinboard.posts.length) {
-      post = Pinboard.posts[searchOffset];
-      searchOffset += 1;
-
-      str = post.description + post.tags + post.extended;
-      if(query.every(matcher)) {
-        searchResult.push(post);
-        if(searchResult.length >= offset + limit) {
-          break;
+        str = post.description + post.tags + post.extended;
+        if(query.every(matcher)) {
+          searchResult.push(post);
+          if(searchResult.length >= offset + limit) {
+            break;
+          }
         }
       }
     }
-  }
 
-  suggest(searchResult.slice(offset, offset + limit).map(function(post) {
-    return createSuggest(post, highlight);
-  }));
+    suggest(searchResult.slice(offset, offset + limit).map(function(post) {
+      return createSuggest(post, highlight);
+    }));
+  });
 });
 
 chrome.omnibox.onInputEntered.addListener(function(text) {

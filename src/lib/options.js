@@ -25,17 +25,18 @@ $(function() {
   var Pinboard = background.Pinboard;
 
   var updateStatus = function(busy) {
-    if(Pinboard.loggedIn()) {
-      $('#status').text('You are logged in as ' + Pinboard.user() + '.');
+    Pinboard.loggedIn(function(user) {
+      $('#status').text('You are logged in as ' + user + '.');
       $('#login').prop('disabled', true);
       $('#logout').prop('disabled', !!busy);
-    }
-    else {
+      $('#update').prop('disabled', !!busy);
+    },
+    function() {
       $('#status').text('You are not logged in.');
       $('#login').prop('disabled', !!busy);
       $('#logout').prop('disabled', true);
-    }
-    $('#update').prop('disabled', !!busy);
+      $('#update').prop('disabled', !!busy);
+    });
   };
   updateStatus();
 
