@@ -62,7 +62,7 @@ Pinboard.initialize = function(onsuccess) {
 };
 
 Pinboard.load = function(onsuccess) {
-  var transaction = Pinboard.database.transaction(Pinboard.POSTS_STORE);
+  var transaction = Pinboard.database.transaction(Pinboard.POSTS_STORE, 'readonly');
   var store = transaction.objectStore(Pinboard.POSTS_STORE);
 
   Pinboard.posts = [];
@@ -86,7 +86,7 @@ Pinboard.store = function(posts, force) {
   if(posts.length === 0) {
     return;
   }
-  var transaction = Pinboard.database.transaction(Pinboard.POSTS_STORE, Pinboard.IDBTransaction.READ_WRITE);
+  var transaction = Pinboard.database.transaction(Pinboard.POSTS_STORE, 'readwrite');
   var store = transaction.objectStore(Pinboard.POSTS_STORE);
   posts.forEach(function(post) {
     var request = store.add(post);
