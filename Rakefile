@@ -18,7 +18,7 @@ class ExtensionMaker
   end
 
   def zip
-    FileUtils.rm @config['zip_file']
+    FileUtils.rm_f @config['zip_file']
     CrxMake.zip(
       :ex_dir     => @config['source_dir'],
       :pkey       => @config['pem_file'],
