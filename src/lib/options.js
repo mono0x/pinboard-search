@@ -49,14 +49,10 @@ $(function() {
     return false;
   });
   $('#update').click(function() {
-    if(!Pinboard.loginRequired()) {
-      return false;
-    }
-
-    m('Updating...');
-    updateStatus(true);
-    Pinboard.forceUpdate(
-      function(message) {
+    Pinboard.loginRequired(function() {
+      m('Updating...');
+      updateStatus(true);
+      Pinboard.forceUpdate(function(message) {
         updateStatus(false);
         m(message);
       },
@@ -64,7 +60,7 @@ $(function() {
         updateStatus(false);
         m(message);
       });
-
+    });
     return false;
   });
 

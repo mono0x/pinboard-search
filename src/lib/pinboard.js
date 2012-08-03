@@ -131,10 +131,10 @@ Pinboard.logout = function() {
 
 Pinboard.autoUpdate = function(onsuccess, onerror, force) {
   Pinboard.updateTimer = undefined;
-  if(!Pinboard.loggedIn()) {
-    return;
-  }
   Pinboard.storage.get('login', function(data) {
+    if((!data && data.login)) {
+      return;
+    }
     var fromDt = !force && Pinboard.posts.length >= 1 ? Pinboard.posts[0].time : undefined;
     Pinboard.update(data.login.user, data.login.password,
       function(message) {
@@ -161,16 +161,11 @@ Pinboard.forceUpdate = function(onsuccess, onerror) {
   Pinboard.autoUpdate(onsuccess, onerror, true);
 };
 
-Pinboard.user = function() {
-  if(!Pinboard.loggedIn()) {
-    return undefined;
-  }
-  return JSON.parse(Pinboard.storage.login).user;
-}
-
 Pinboard.loginRequired = function(onloggedin, onnotloggedin) {
   Pinboard.loggedIn(function(user) {
-    onloggedin(user);
+    if(onloggedin) {
+      onloggedin(user);
+    }
   },
   function() {
     chrome.tabs.create({ url: chrome.extension.getURL('/login.html') });
