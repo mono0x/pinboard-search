@@ -26,11 +26,23 @@ var searchResult = [];
 var searchOffset = 0;
 var currentOffset = 0;
 
+var entities = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+};
+
 var createSuggest = function(post, highlight) {
-  var title = Utils.escapeHtml(post.description).replace(highlight, '<match>$&</match>');
+  var regexp = new RegExp('(' + highlight.source + ')|([&<>"])', 'ig');
+  var title = post.description.replace(regexp, function(s, h, e) {
+    if(h) {
+      return '<match>' + h.replace(/[&<>"]/, function(s) { return entities[s]; }) + '</match>';
+    }
+    else if(e) {
+      return entities[e];
+    }
+  });
   return {
     content: post.href,
-    description: title + ' <url>' + post.href + '</url>'
+    description: title + ' <url>' + Utils.escapeHtml(post.href) + '</url>'
   };
 };
 
@@ -63,9 +75,14 @@ chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
   query = currentQuery.split(/\s/).map(function(word) {
     return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
   });
-  highlight = new RegExp(currentQuery.split(/\s/).map(function(word) {
-    return word.replace(/\W/g, '\\$&');
-  }).join('|'), 'ig');
+  if(currentQuery.length > 0) {
+    highlight = new RegExp(currentQuery.split(/\s/).map(function(word) {
+      return word.replace(/\W/g, '\\$&');
+    }).join('|'), 'ig');
+  }
+  else {
+    highlight = new RegExp("(?!)");
+  }
 
   if(query.length === 0) {
     return;
