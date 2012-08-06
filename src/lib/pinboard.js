@@ -54,15 +54,17 @@ Pinboard.load = function(onsuccess) {
 };
 
 Pinboard.store = function(posts, force) {
-  if(force) {
-    Pinboard.posts = [];
-  }
   if(posts.length === 0) {
     return;
   }
-  Pinboard.storage.set({ 'version': Pinboard.VERSION, 'posts': posts }, function() {
-    Pinboard.sortPosts();
-  });
+  if(force) {
+    Pinboard.posts = posts;
+  }
+  else {
+    posts.forEach(function(post) { Pinboard.posts.push(post); });
+  }
+  Pinboard.sortPosts();
+  Pinboard.storage.set({ 'version': Pinboard.VERSION, 'posts': posts });
 };
 
 Pinboard.loggedIn = function(onloggedin, onnotloggedin) {
