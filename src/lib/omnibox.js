@@ -56,12 +56,12 @@ chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
     return;
   }
 
-  var post, str, highlight, matcher;
+  var post, str, split, highlight, matcher;
   var limit = 5;
   var query = [];
   var offset = 0;
 
-  if(!text.match(/^(.*?)(\.*)$/)) {
+  if(!text.match(/^(.*?[^\.].*?)\s*(\.*)$/)) {
     return;
   }
 
@@ -72,21 +72,17 @@ chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
     searchOffset = 0;
   }
 
-  query = currentQuery.split(/\s/).map(function(word) {
-    return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
-  });
-  if(currentQuery.length > 0) {
-    highlight = new RegExp(currentQuery.split(/\s/).map(function(word) {
-      return word.replace(/\W/g, '\\$&');
-    }).join('|'), 'ig');
-  }
-  else {
-    highlight = new RegExp("(?!)");
-  }
-
-  if(query.length === 0) {
+  split = currentQuery.split(/\s+/);
+  if(split.length === 0) {
     return;
   }
+
+  query = split.map(function(word) {
+    return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
+  });
+  highlight = new RegExp(split.map(function(word) {
+    return word.replace(/\W/g, '\\$&');
+  }).join('|'), 'ig');
 
   if(searchResult.length < offset + limit) {
     matcher = function(q) { return str.match(q); };
