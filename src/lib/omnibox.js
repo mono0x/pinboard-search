@@ -85,10 +85,6 @@ chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
   }).join('|'), 'ig');
 
   if(searchResult.length < offset + limit) {
-    suggest(searchResult.slice(offset, searchResult.length).map(function(post) {
-      return createSuggest(post, highlight);
-    }));
-
     matcher = function(q) { return str.match(q); };
     while(searchOffset < Pinboard.posts.length) {
       post = Pinboard.posts[searchOffset];
@@ -97,20 +93,16 @@ chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
       str = post.description + post.tags + post.extended;
       if(query.every(matcher)) {
         searchResult.push(post);
-        if(searchResult.length >= offset) {
-          suggest([ createSuggest(post, highlight) ]);
-          if(searchResult.length >= offset + limit) {
-            break;
-          }
+        if(searchResult.length >= offset + limit) {
+          break;
         }
       }
     }
   }
-  else {
-    suggest(searchResult.slice(offset, offset + limit).map(function(post) {
-      return createSuggest(post, highlight);
-    }));
-  }
+
+  suggest(searchResult.slice(offset, offset + limit).map(function(post) {
+    return createSuggest(post, highlight);
+  }));
 });
 
 chrome.omnibox.onInputEntered.addListener(function(text) {
