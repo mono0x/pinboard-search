@@ -64,7 +64,10 @@ Pinboard.store = function(posts, force) {
     posts.forEach(function(post) { Pinboard.posts.push(post); });
   }
   Pinboard.sortPosts();
-  Pinboard.storage.set({ 'version': Pinboard.VERSION, 'posts': posts });
+  Pinboard.storage.set({
+    'version': Pinboard.VERSION,
+    'posts': Pinboard.posts
+  });
 };
 
 Pinboard.loggedIn = function(onloggedin, onnotloggedin) {
