@@ -25,17 +25,16 @@ $(function() {
   var Pinboard = background.Pinboard;
 
   $('form').submit(function() {
-    var user = $('input[name="user"]').val();
-    var password = $('input[name="password"]').val();
+    var token = $('input[name="token"]').val();
 
-    if(!(user && password)) {
+    if(!token) {
       return false;
     }
 
     $('input[type="submit"]').prop('disabled', true);
     $('#message').text('Authorizing...');
 
-    Pinboard.login(user, password,
+    Pinboard.login(token,
       function(message) {
         $('input[type="submit"]').prop('disabled', false);
         $('#message').text(message);

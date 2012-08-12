@@ -22,7 +22,7 @@
 
 var Pinboard = {};
 
-Pinboard.VERSION = 20120313;
+Pinboard.VERSION = 20120812;
 Pinboard.POSTS_STORE = 'Posts';
 
 Pinboard.Uris = {};
@@ -33,13 +33,26 @@ Pinboard.Uris.postsAll = function(params) {
 
 Pinboard.initialize = function(onsuccess) {
   Pinboard.storage.get('version', function(data) {
-    if(data.version != Pinboard.VERSION) {
-      Pinboard.storage.set({ 'version': Pinboard.VERSION, 'posts': [] }, function() {
+    switch(data.version) {
+      case Pinboard.VERSION:
         Pinboard.load(onsuccess);
-      });
-    }
-    else {
-      Pinboard.load(onsuccess);
+        break;
+
+      case 20120313:
+        Pinboard.storage.remove([ 'login' ], function() {
+          Pinboard.storage.set({ 'version': Pinboard.VERSION, 'posts': [] }, function() {
+            Pinboard.load(onsuccess);
+          });
+        });
+        break;
+
+      default:
+        Pinboard.storage.clear(function() {
+          Pinboard.storage.set({ 'version': Pinboard.VERSION, 'posts': [] }, function() {
+            Pinboard.load(onsuccess);
+          });
+        });
+        break;
     }
   });
 };
@@ -72,8 +85,8 @@ Pinboard.store = function(posts, force) {
 
 Pinboard.loggedIn = function(onloggedin, onnotloggedin) {
   Pinboard.storage.get('login', function(data) {
-    if(data && data.login) {
-      onloggedin(data.login.user);
+    if(data && data.login && data.login.token) {
+      onloggedin(data.login.token.split(':')[0]);
     }
     else {
       onnotloggedin();
@@ -81,13 +94,13 @@ Pinboard.loggedIn = function(onloggedin, onnotloggedin) {
   });
 };
 
-Pinboard.update = function(user, password, onsuccess, onerror, fromDt) {
-  var params = { format: 'json' };
+Pinboard.update = function(token, onsuccess, onerror, fromDt) {
+  var params = { format: 'json', auth_token: token };
   if(fromDt) {
     params.fromdt = fromDt;
   }
   var request = new XMLHttpRequest();
-  request.open('GET', Pinboard.Uris.postsAll(params), true, user, password);
+  request.open('GET', Pinboard.Uris.postsAll(params), true);
   request.onreadystatechange = function() {
     if(request.readyState == 4) {
       if(request.status == 200) {
@@ -102,12 +115,11 @@ Pinboard.update = function(user, password, onsuccess, onerror, fromDt) {
   request.send(null);
 };
 
-Pinboard.login = function(user, password, onsuccess, onerror) {
-  Pinboard.update(user, password,
+Pinboard.login = function(token, onsuccess, onerror) {
+  Pinboard.update(token,
     function(message) {
       var login = {
-        user: user,
-        password: password
+        token: token
       };
       Pinboard.storage.set({ 'login': login }, function() {
         Pinboard.requestAutoUpdate(60 * 60 * 1000);
@@ -141,7 +153,7 @@ Pinboard.autoUpdate = function(onsuccess, onerror, force) {
       return;
     }
     var fromDt = !force && Pinboard.posts.length >= 1 ? Pinboard.posts[0].time : undefined;
-    Pinboard.update(data.login.user, data.login.password,
+    Pinboard.update(data.login.token,
       function(message) {
         Pinboard.retryCount = 0;
         Pinboard.requestAutoUpdate(60 * 60 * 1000);
