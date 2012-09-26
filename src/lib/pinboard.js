@@ -25,7 +25,15 @@ var Pinboard = {};
 Pinboard.VERSION = 20120812;
 Pinboard.POSTS_STORE = 'Posts';
 
+Pinboard.STARTUP_DELAY = 5;
+Pinboard.RETRY_DELAY = 5;
+Pinboard.UPDATE_INTERVAL = 30;
+
 Pinboard.Uris = {};
+
+Pinboard.Uris.postsUpdate = function(params) {
+  return 'https://api.pinboard.in/v1/posts/update?' + Utils.buildQuery(params);
+};
 
 Pinboard.Uris.postsAll = function(params) {
   return 'https://api.pinboard.in/v1/posts/all?' + Utils.buildQuery(params);
@@ -95,6 +103,32 @@ Pinboard.loggedIn = function(onloggedin, onnotloggedin) {
 };
 
 Pinboard.update = function(token, onsuccess, onerror, fromDt) {
+  if(!fromDt) {
+    Pinboard.update(token, onsuccess, onerror);
+    return;
+  }
+  var params = { format: 'json', auth_token: token };
+  var request = new XMLHttpRequest();
+  request.open('GET', Pinboard.Uris.postsUpdate(params), true);
+  request.onreadystatechange = function() {
+    if(request.readyState == 4) {
+      if(request.status == 200) {
+        if(JSON.parse(request.responseText).update_time > fromDt) {
+          Pinboard.fetch(token, onsuccess, onerror, fromDt);
+        }
+        else {
+          onsuccess(request.statusText);
+        }
+      }
+      else {
+        onerror(request.statusText);
+      }
+    }
+  };
+  request.send(null);
+};
+
+Pinboard.fetch = function(token, onsuccess, onerror, fromDt) {
   var params = { format: 'json', auth_token: token };
   if(fromDt) {
     params.fromdt = fromDt;
@@ -156,7 +190,7 @@ Pinboard.autoUpdate = function(onsuccess, onerror, force) {
     Pinboard.update(data.login.token,
       function(message) {
         Pinboard.retryCount = 0;
-        Pinboard.requestAutoUpdate(60 * 60 * 1000);
+        Pinboard.requestAutoUpdate(Pinboard.UPDATE_DELAY * 60 * 1000);
         if(onsuccess) {
           onsuccess(message);
         }
@@ -165,7 +199,7 @@ Pinboard.autoUpdate = function(onsuccess, onerror, force) {
         if(Pinboard.retryCount <= 12) {
           Pinboard.retryCount += 1;
         }
-        Pinboard.requestAutoUpdate(Pinboard.retryCount * 5 * 60 * 1000);
+        Pinboard.requestAutoUpdate(Pinboard.retryCount * Pinboard.RETRY_DELAY * 60 * 1000);
         if(onerror) {
           onerror(message);
         }
@@ -213,7 +247,7 @@ Pinboard.initialize(function() {
   Pinboard.loginRequired(function() {
     Pinboard.updateTimer = setTimeout(function() {
       Pinboard.autoUpdate(undefined, undefined, true);
-    }, 5 * 60 * 1000);
+    }, Pinboard.STARTUP_DELAY * 60 * 1000);
   });
 });
 
