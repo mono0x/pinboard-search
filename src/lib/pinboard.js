@@ -101,7 +101,7 @@ Pinboard.loggedIn = function(onloggedin, onnotloggedin) {
 
 Pinboard.update = function(token, onsuccess, onerror, fromDt) {
   if(!fromDt) {
-    Pinboard.update(token, onsuccess, onerror);
+    Pinboard.fetch(token, onsuccess, onerror);
     return;
   }
   var params = { format: 'json', auth_token: token };
@@ -156,7 +156,7 @@ Pinboard.login = function(token, onsuccess, onerror) {
         token: token
       };
       Pinboard.storage.set({ 'login': login }, function() {
-        Pinboard.requestAutoUpdate(60 * 60 * 1000);
+        Pinboard.requestAutoUpdate(Pinboard.UPDATE_INTERVAL);
         onsuccess(message);
       });
     },
@@ -189,17 +189,17 @@ Pinboard.autoUpdate = function(onsuccess, onerror, force) {
     var fromDt = !force ? data.updated : undefined;
     Pinboard.update(data.login.token,
       function(message) {
-        Pinboard.retryCount = 0;
-        Pinboard.requestAutoUpdate(Pinboard.UPDATE_DELAY * 60 * 1000);
+        localStorage.retryCount = 0;
+        Pinboard.requestAutoUpdate(Pinboard.UPDATE_INTERVAL);
         if(onsuccess) {
           onsuccess(message);
         }
       },
       function(message) {
-        if(Pinboard.retryCount <= 12) {
-          Pinboard.retryCount += 1;
+        if(localStorage.retryCount <= 12) {
+          localStorage.retryCount += 1;
         }
-        Pinboard.requestAutoUpdate(Pinboard.retryCount * Pinboard.RETRY_DELAY * 60 * 1000);
+        Pinboard.requestAutoUpdate(localStorage.retryCount * Pinboard.RETRY_DELAY);
         if(onerror) {
           onerror(message);
         }
@@ -228,25 +228,31 @@ Pinboard.loginRequired = function(onloggedin, onnotloggedin) {
 
 Pinboard.requestAutoUpdate = function(time) {
   Pinboard.cancelAutoUpdate();
-  Pinboard.updateTimer = setTimeout(Pinboard.autoUpdate, time);
+  chrome.alarms.create({ delayInMinutes: time });
 };
 
 Pinboard.cancelAutoUpdate = function() {
-  if(Pinboard.updateTimer) {
-    clearTimeout(Pinboard.updateTimer);
-    Pinboard.updateTimer = undefined;
-  }
+  chrome.alarms.clearAll();
+};
+
+Pinboard.startup = function() {
+  localStorage.retryCount = 0;
+
+  Pinboard.loginRequired(function() {
+    Pinboard.autoUpdate(undefined, undefined, true);
+  });
 };
 
 Pinboard.storage = chrome.storage.local;
-Pinboard.retryCount = 0;
-Pinboard.updateTimer = undefined;
 
-Pinboard.initialize(function() {
-  Pinboard.loginRequired(function() {
-    Pinboard.updateTimer = setTimeout(function() {
-      Pinboard.autoUpdate(undefined, undefined, true);
-    }, Pinboard.STARTUP_DELAY * 60 * 1000);
-  });
+chrome.runtime.onInstalled.addListener(function() {
+  Pinboard.startup();
 });
 
+chrome.runtime.onStartup.addListener(function() {
+  Pinboard.startup();
+});
+
+chrome.alarms.onAlarm.addListener(function(alarm) {
+  Pinboard.autoUpdate();
+});

@@ -21,21 +21,21 @@
  */
 
 $(function() {
-  var background = chrome.extension.getBackgroundPage();
-  var Pinboard = background.Pinboard;
 
   var updateStatus = function(busy) {
-    Pinboard.loggedIn(function(user) {
-      $('#status').text('You are logged in as ' + user + '.');
-      $('#login').prop('disabled', true);
-      $('#logout').prop('disabled', !!busy);
-      $('#update').prop('disabled', !!busy);
-    },
-    function() {
-      $('#status').text('You are not logged in.');
-      $('#login').prop('disabled', !!busy);
-      $('#logout').prop('disabled', true);
-      $('#update').prop('disabled', !!busy);
+    chrome.runtime.getBackgroundPage(function(background) {
+      background.Pinboard.loggedIn(function(user) {
+        $('#status').text('You are logged in as ' + user + '.');
+        $('#login').prop('disabled', true);
+        $('#logout').prop('disabled', !!busy);
+        $('#update').prop('disabled', !!busy);
+      },
+      function() {
+        $('#status').text('You are not logged in.');
+        $('#login').prop('disabled', !!busy);
+        $('#logout').prop('disabled', true);
+        $('#update').prop('disabled', !!busy);
+      });
     });
   };
   updateStatus();
@@ -45,20 +45,24 @@ $(function() {
   };
 
   $('#login').click(function() {
-    Pinboard.loginRequired();
+    chrome.runtime.getBackgroundPage(function(background) {
+      background.Pinboard.loginRequired();
+    });
     return false;
   });
   $('#update').click(function() {
     Pinboard.loginRequired(function() {
       m('Updating...');
       updateStatus(true);
-      Pinboard.forceUpdate(function(message) {
-        updateStatus(false);
-        m(message);
-      },
-      function(message) {
-        updateStatus(false);
-        m(message);
+      chrome.runtime.getBackgroundPage(function(background) {
+        background.Pinboard.forceUpdate(function(message) {
+          updateStatus(false);
+          m(message);
+        },
+        function(message) {
+          updateStatus(false);
+          m(message);
+        });
       });
     });
     return false;
@@ -66,7 +70,9 @@ $(function() {
 
   $('#logout').click(function() {
     if(confirm('Do you want to logout?')) {
-      Pinboard.logout();
+      chrome.runtime.getBackgroundPage(function(background) {
+        background.Pinboard.logout();
+      });
       updateStatus();
     }
     return false;
