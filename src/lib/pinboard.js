@@ -66,28 +66,25 @@ Pinboard.initialize = function(onsuccess) {
 };
 
 Pinboard.load = function(onsuccess) {
-  Pinboard.posts = [];
   Pinboard.storage.get('posts', function(data) {
-    Pinboard.posts = data.posts;
-    Pinboard.sortPosts();
-    onsuccess();
+    Pinboard.sortPosts(data.posts);
+    onsuccess(data.posts);
   });
 };
 
 Pinboard.store = function(posts, force) {
-  if(posts.length === 0) {
-    return;
-  }
-  if(force) {
-    Pinboard.posts = posts;
-  }
-  else {
-    posts.forEach(function(post) { Pinboard.posts.push(post); });
-  }
-  Pinboard.sortPosts();
-  Pinboard.storage.set({
-    'version': Pinboard.VERSION,
-    'posts': Pinboard.posts
+  Pinboard.initialize(function(base) {
+    if(posts.length === 0) {
+      return;
+    }
+    if(!force) {
+      base.forEach(function(post) { posts.push(post); });
+    }
+    Pinboard.sortPosts(posts);
+    Pinboard.storage.set({
+      'version': Pinboard.VERSION,
+      'posts': posts
+    });
   });
 };
 
@@ -138,8 +135,11 @@ Pinboard.fetch = function(token, onsuccess, onerror, fromDt) {
   request.onreadystatechange = function() {
     if(request.readyState == 4) {
       if(request.status == 200) {
-        Pinboard.store(JSON.parse(request.responseText), !fromDt);
-        onsuccess(request.statusText);
+        var posts = JSON.parse(request.responseText);
+        Pinboard.store(posts, !fromDt);
+        Pinboard.storage.set({ 'updated': posts[0].time }, function() {
+          onsuccess(request.statusText);
+        });
       }
       else {
         onerror(request.statusText);
@@ -163,8 +163,8 @@ Pinboard.login = function(token, onsuccess, onerror) {
     onerror);
 };
 
-Pinboard.sortPosts = function() {
-  Pinboard.posts.sort(function(a, b) {
+Pinboard.sortPosts = function(posts) {
+  posts.sort(function(a, b) {
     if(a.time < b.time) {
       return 1;
     }
@@ -182,11 +182,11 @@ Pinboard.logout = function() {
 
 Pinboard.autoUpdate = function(onsuccess, onerror, force) {
   Pinboard.updateTimer = undefined;
-  Pinboard.storage.get('login', function(data) {
+  Pinboard.storage.get([ 'login', 'updated' ], function(data) {
     if((!data && data.login)) {
       return;
     }
-    var fromDt = !force && Pinboard.posts.length >= 1 ? Pinboard.posts[0].time : undefined;
+    var fromDt = !force ? data.updated : undefined;
     Pinboard.update(data.login.token,
       function(message) {
         Pinboard.retryCount = 0;
@@ -239,7 +239,6 @@ Pinboard.cancelAutoUpdate = function() {
 };
 
 Pinboard.storage = chrome.storage.local;
-Pinboard.posts = [];
 Pinboard.retryCount = 0;
 Pinboard.updateTimer = undefined;
 

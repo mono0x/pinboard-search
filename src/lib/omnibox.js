@@ -21,6 +21,7 @@
  */
 (function() {
 
+var posts = undefined;
 var currentQuery = null;
 var searchResult = [];
 var searchOffset = 0;
@@ -46,16 +47,7 @@ var createSuggest = function(post, highlight) {
   };
 };
 
-chrome.omnibox.setDefaultSuggestion({
-  description: 'Search my posts for <match>%s</match>'
-});
-
-chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
-  if(Pinboard.posts.length === 0) {
-    Pinboard.loginRequired();
-    return;
-  }
-
+var search = function(text, suggest) {
   var post, str, split, highlight, matcher;
   var limit = 5;
   var query = [];
@@ -86,8 +78,8 @@ chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
 
   if(searchResult.length < offset + limit) {
     matcher = function(q) { return str.match(q); };
-    while(searchOffset < Pinboard.posts.length) {
-      post = Pinboard.posts[searchOffset];
+    while(searchOffset < posts.length) {
+      post = posts[searchOffset];
       searchOffset += 1;
 
       str = post.description + post.tags + post.extended;
@@ -103,6 +95,24 @@ chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
   suggest(searchResult.slice(offset, offset + limit).map(function(post) {
     return createSuggest(post, highlight);
   }));
+};
+
+chrome.omnibox.setDefaultSuggestion({
+  description: 'Search my posts for <match>%s</match>'
+});
+
+chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
+  Pinboard.loginRequired(function() {
+    if(posts) {
+      search(text, suggest);
+    }
+    else {
+      Pinboard.initialize(function(p) {
+        posts = p;
+        search(text, suggest);
+      });
+    }
+  });
 });
 
 chrome.omnibox.onInputEntered.addListener(function(text) {
@@ -118,6 +128,11 @@ chrome.omnibox.onInputEntered.addListener(function(text) {
       });
     }
   }
+  posts = undefined;
+});
+
+chrome.omnibox.onInputCancelled.addListener(function() {
+  posts = undefined;
 });
 
 })();
