@@ -101,7 +101,7 @@ Pinboard.loggedIn = function(onloggedin, onnotloggedin) {
 
 Pinboard.update = function(token, onsuccess, onerror, fromDt) {
   if(!fromDt) {
-    Pinboard.update(token, onsuccess, onerror);
+    Pinboard.fetch(token, onsuccess, onerror);
     return;
   }
   var params = { format: 'json', auth_token: token };
