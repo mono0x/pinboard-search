@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Pinboard Search",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Search Pinboard in Omnibox",
   "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
   "background": {
