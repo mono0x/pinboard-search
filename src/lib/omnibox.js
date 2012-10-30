@@ -70,7 +70,9 @@ var search = function(text, suggest) {
   }
 
   query = split.map(function(word) {
-    return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
+    var normalized = Utils.normalize(word).replace(/\W/g, '\\$&');
+    var hiragana = r2h(normalized);
+    return new RegExp([ normalized, hiragana ].join('|'), 'ig');
   });
   highlight = new RegExp(split.map(function(word) {
     return word.replace(/\W/g, '\\$&');
@@ -82,7 +84,7 @@ var search = function(text, suggest) {
       post = posts[searchOffset];
       searchOffset += 1;
 
-      str = post.description + post.tags + post.extended;
+      str = Utils.normalize(post.description + post.tags + post.extended);
       if(query.every(matcher)) {
         searchResult.push(post);
         if(searchResult.length >= offset + limit) {

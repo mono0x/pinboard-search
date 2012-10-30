@@ -6,6 +6,8 @@
   "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
   "background": {
     "scripts": [
+      "lib/hanzenkaku.js",
+      "lib/roman2hiragana.js",
       "lib/utils.js",
       "lib/pinboard.js",
       "lib/omnibox.js",
