@@ -190,7 +190,7 @@ Pinboard.autoUpdate = function(onsuccess, onerror, force) {
     Pinboard.update(data.login.token,
       function(message) {
         Pinboard.retryCount = 0;
-        Pinboard.requestAutoUpdate(Pinboard.UPDATE_DELAY * 60 * 1000);
+        Pinboard.requestAutoUpdate(Pinboard.UPDATE_INTERVAL * 60 * 1000);
         if(onsuccess) {
           onsuccess(message);
         }
