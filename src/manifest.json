@@ -10,7 +10,8 @@
       "lib/pinboard.js",
       "lib/omnibox.js",
       "lib/analytics.js"
-    ]
+    ],
+    "persistent": false
   },
   "options_page": "options.html",
   "omnibox": {
@@ -19,6 +20,7 @@
   "permissions": [
     "tabs",
     "storage",
+    "alarms",
     "unlimitedStorage",
     "https://api.pinboard.in/v1/posts/update",
     "https://api.pinboard.in/v1/posts/all"
