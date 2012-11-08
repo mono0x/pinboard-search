@@ -181,7 +181,6 @@ Pinboard.logout = function() {
 };
 
 Pinboard.autoUpdate = function(onsuccess, onerror, force) {
-  Pinboard.updateTimer = undefined;
   Pinboard.storage.get([ 'login', 'updated' ], function(data) {
     if((!data && data.login)) {
       return;
@@ -208,7 +207,6 @@ Pinboard.autoUpdate = function(onsuccess, onerror, force) {
 };
 
 Pinboard.forceUpdate = function(onsuccess, onerror) {
-  Pinboard.cancelAutoUpdate();
   Pinboard.autoUpdate(onsuccess, onerror, true);
 };
 
@@ -227,8 +225,7 @@ Pinboard.loginRequired = function(onloggedin, onnotloggedin) {
 };
 
 Pinboard.requestAutoUpdate = function(time) {
-  Pinboard.cancelAutoUpdate();
-  chrome.alarms.create({ delayInMinutes: time });
+  chrome.alarms.create('update', { delayInMinutes: time });
 };
 
 Pinboard.cancelAutoUpdate = function() {
@@ -254,5 +251,9 @@ chrome.runtime.onStartup.addListener(function() {
 });
 
 chrome.alarms.onAlarm.addListener(function(alarm) {
-  Pinboard.autoUpdate();
+  if(alarm) {
+    if(alarm.name == 'update') {
+      Pinboard.autoUpdate();
+    }
+  }
 });
