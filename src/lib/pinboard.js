@@ -27,7 +27,7 @@ Pinboard.POSTS_STORE = 'Posts';
 
 Pinboard.STARTUP_DELAY = 5;
 Pinboard.RETRY_DELAY = 5;
-Pinboard.UPDATE_INTERVAL = 30;
+Pinboard.UPDATE_INTERVAL = 10;
 
 Pinboard.Uris = {};
 
