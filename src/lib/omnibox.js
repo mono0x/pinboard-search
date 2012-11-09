@@ -53,10 +53,37 @@ var createSuggest = function(post, highlight) {
   };
 };
 
-var search = function(posts, text, suggest) {
-  var post, str, split, highlight, matcher;
+var parseQuery = function(query, migemo) {
+  if(migemo) {
+    return Migemo.query(currentQuery).pipe(function(result) {
+      if(!result) {
+        return $.Deferred().reject();
+      }
+      return result.split(/(?:\\s\*)+/).map(function(part) {
+        return new RegExp(part, 'i');
+      });
+    }).pipe(null, function() {
+      return parseQuery(query, false);
+    });
+  }
+  else {
+    var deferred = $.Deferred();
+    var split = currentQuery.split(/\s+/);
+    if(split.length > 0) {
+      deferred.resolve(split.map(function(word) {
+        return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
+      }));
+    }
+    else {
+      deferred.reject();
+    }
+    return deferred.promise();
+  }
+};
+
+var search = function(posts, text, suggest, migemo) {
+  var post, str, split, matcher;
   var limit = 5;
-  var query = [];
   var offset = 0;
 
   if(!text.match(/^(.*?[^\.].*?)\s*(\.*)$/)) {
@@ -70,37 +97,31 @@ var search = function(posts, text, suggest) {
     searchOffset = 0;
   }
 
-  split = currentQuery.split(/\s+/);
-  if(split.length === 0) {
-    return;
-  }
+  parseQuery(currentQuery, migemo).done(function(query) {
+    var highlight = new RegExp(query.map(function(word) {
+      return word.source;
+    }).join('|'), 'ig');
 
-  query = split.map(function(word) {
-    return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
-  });
-  highlight = new RegExp(split.map(function(word) {
-    return word.replace(/\W/g, '\\$&');
-  }).join('|'), 'ig');
+    if(searchResult.length < offset + limit) {
+      matcher = function(q) { return str.match(q); };
+      while(searchOffset < posts.length) {
+        post = posts[searchOffset];
+        searchOffset += 1;
 
-  if(searchResult.length < offset + limit) {
-    matcher = function(q) { return str.match(q); };
-    while(searchOffset < posts.length) {
-      post = posts[searchOffset];
-      searchOffset += 1;
-
-      str = post.description + post.tags + post.extended;
-      if(query.every(matcher)) {
-        searchResult.push(post);
-        if(searchResult.length >= offset + limit) {
-          break;
+        str = post.description + post.tags + post.extended;
+        if(query.every(matcher)) {
+          searchResult.push(post);
+          if(searchResult.length >= offset + limit) {
+            break;
+          }
         }
       }
     }
-  }
 
-  suggest(searchResult.slice(offset, offset + limit).map(function(post) {
-    return createSuggest(post, highlight);
-  }));
+    suggest(searchResult.slice(offset, offset + limit).map(function(post) {
+      return createSuggest(post, highlight);
+    }));
+  });
 };
 
 chrome.omnibox.setDefaultSuggestion({
@@ -108,10 +129,13 @@ chrome.omnibox.setDefaultSuggestion({
 });
 
 chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
-  Pinboard.loginRequired().pipe(function() {
-    return getPosts();
-  }).done(function(posts) {
-    search(posts, text, suggest);
+  $.when(
+    Pinboard.loginRequired().pipe(function() {
+      return getPosts();
+    }),
+    Pinboard.get([ 'enable_migemo' ])
+  ).done(function(posts, data) {
+    search(posts, text, suggest, data.enable_migemo);
   });
 });
 

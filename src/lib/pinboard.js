@@ -140,7 +140,7 @@ Pinboard.fetch = function(token, fromDt) {
 Pinboard.login = function(token) {
   return Pinboard.update(token).pipe(function(message) {
     var login = { token: token };
-    return Pinboard.set({ 'login': login }).pipe(function() {
+    return Pinboard.set({ 'version': Pinboard.VERSION, 'login': login }).pipe(function() {
       Pinboard.requestAutoUpdate(Pinboard.UPDATE_INTERVAL);
       return message;
     });

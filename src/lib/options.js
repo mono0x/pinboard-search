@@ -45,6 +45,12 @@ $(function() {
   };
   updateStatus();
 
+  backgroundPage().pipe(function(background) {
+    return background.Pinboard.get([ 'enable_migemo' ]);
+  }).done(function(data) {
+    $('#enable_migemo').prop('checked', data.enable_migemo);
+  });
+
   var m = function(text) {
     $('#message').text(text);
   };
@@ -80,5 +86,12 @@ $(function() {
       updateStatus();
     }
     return false;
+  });
+
+  $('#enable_migemo').click(function() {
+    var checked = $(this).prop('checked');
+    backgroundPage().done(function(background) {
+      background.Pinboard.set({ 'enable_migemo': checked });
+    });
   });
 });
