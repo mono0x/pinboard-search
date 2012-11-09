@@ -3,13 +3,11 @@
   "name": "Pinboard Search",
   "version": "0.1.7",
   "description": "Search Pinboard in Omnibox",
-  "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
   "background": {
     "scripts": [
       "lib/utils.js",
       "lib/pinboard.js",
-      "lib/omnibox.js",
-      "lib/analytics.js"
+      "lib/omnibox.js"
     ],
     "persistent": false
   },
