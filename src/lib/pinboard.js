@@ -29,141 +29,126 @@ Pinboard.STARTUP_DELAY = 5;
 Pinboard.RETRY_DELAY = 5;
 Pinboard.UPDATE_INTERVAL = 10;
 
-Pinboard.Uris = {};
-
-Pinboard.Uris.postsUpdate = function(params) {
-  return 'https://api.pinboard.in/v1/posts/update?' + Utils.buildQuery(params);
+Pinboard.set = function(objects) {
+  var deferred = $.Deferred();
+  Pinboard.storage.set(objects, function() {
+    deferred.resolve();
+  });
+  return deferred.promise();
 };
 
-Pinboard.Uris.postsAll = function(params) {
-  return 'https://api.pinboard.in/v1/posts/all?' + Utils.buildQuery(params);
+Pinboard.get = function(keys) {
+  var deferred = $.Deferred();
+  Pinboard.storage.get(keys, function(data) {
+    deferred.resolve(data);
+  });
+  return deferred.promise();
 };
 
-Pinboard.initialize = function(onsuccess) {
-  Pinboard.storage.get('version', function(data) {
+Pinboard.remove = function(keys) {
+  var deferred = $.Deferred();
+  Pinboard.storage.remove(keys, function() {
+    deferred.resolve();
+  });
+  return deferred.promise();
+};
+
+Pinboard.clear = function() {
+  var deferred = $.Deferred();
+  Pinboard.storage.clear(function() {
+    deferred.resolve();
+  });
+  return deferred.promise();
+};
+
+Pinboard.initialize = function() {
+  return Pinboard.get('version').pipe(function(data) {
     switch(data.version) {
       case Pinboard.VERSION:
-        Pinboard.load(onsuccess);
-        break;
-
-      case 20120313:
-        Pinboard.storage.remove([ 'login' ], function() {
-          Pinboard.storage.set({ 'version': Pinboard.VERSION, 'posts': [] }, function() {
-            Pinboard.load(onsuccess);
-          });
-        });
-        break;
+        return Pinboard.load();
 
       default:
-        Pinboard.storage.clear(function() {
-          Pinboard.storage.set({ 'version': Pinboard.VERSION, 'posts': [] }, function() {
-            Pinboard.load(onsuccess);
-          });
+        return Pinboard.clear().pipe(function() {
+          return Pinboard.set({ 'version': Pinboard.VERSION, 'posts': [] });
+        }).pipe(function() {
+          return Pinboard.load();
         });
-        break;
     }
   });
 };
 
-Pinboard.load = function(onsuccess) {
-  Pinboard.storage.get('posts', function(data) {
-    Pinboard.sortPosts(data.posts);
-    onsuccess(data.posts);
+Pinboard.load = function() {
+  return Pinboard.get('posts').pipe(function(data) {
+    return Pinboard.sortPosts(data.posts);
   });
 };
 
 Pinboard.store = function(posts, force) {
-  Pinboard.initialize(function(base) {
+  return Pinboard.initialize().pipe(function(base) {
     if(posts.length === 0) {
-      return;
+      return $.Deferred().reject();
     }
     if(!force) {
       base.forEach(function(post) { posts.push(post); });
     }
-    Pinboard.sortPosts(posts);
-    Pinboard.storage.set({
+    return Pinboard.set({
       'version': Pinboard.VERSION,
-      'posts': posts
+      'posts': Pinboard.sortPosts(posts)
     });
   });
 };
 
-Pinboard.loggedIn = function(onloggedin, onnotloggedin) {
-  Pinboard.storage.get('login', function(data) {
+Pinboard.loggedIn = function() {
+  return Pinboard.get('login').pipe(function(data) {
     if(data && data.login && data.login.token) {
-      onloggedin(data.login.token.split(':')[0]);
+      return data.login.token.split(':')[0];
     }
     else {
-      onnotloggedin();
+      return $.Deferred().reject();
     }
   });
 };
 
-Pinboard.update = function(token, onsuccess, onerror, fromDt) {
+Pinboard.update = function(token, fromDt) {
   if(!fromDt) {
-    Pinboard.fetch(token, onsuccess, onerror);
-    return;
+    return Pinboard.fetch(token);
   }
   var params = { format: 'json', auth_token: token };
-  var request = new XMLHttpRequest();
-  request.open('GET', Pinboard.Uris.postsUpdate(params), true);
-  request.onreadystatechange = function() {
-    if(request.readyState == 4) {
-      if(request.status == 200) {
-        if(JSON.parse(request.responseText).update_time > fromDt) {
-          Pinboard.fetch(token, onsuccess, onerror, fromDt);
-        }
-        else {
-          onsuccess(request.statusText);
-        }
-      }
-      else {
-        onerror(request.statusText);
-      }
+  return $.get('https://api.pinboard.in/v1/posts/update', params).pipe(function(result, statusText) {
+    if(JSON.parse(result).update_time > fromDt) {
+      return Pinboard.fetch(token, fromDt);
     }
-  };
-  request.send(null);
+    return statusText;
+  });
 };
 
-Pinboard.fetch = function(token, onsuccess, onerror, fromDt) {
+Pinboard.fetch = function(token, fromDt) {
   var params = { format: 'json', auth_token: token };
   if(fromDt) {
     params.fromdt = fromDt;
   }
-  var request = new XMLHttpRequest();
-  request.open('GET', Pinboard.Uris.postsAll(params), true);
-  request.onreadystatechange = function() {
-    if(request.readyState == 4) {
-      if(request.status == 200) {
-        var posts = JSON.parse(request.responseText);
-        Pinboard.store(posts, !fromDt);
-        Pinboard.storage.set({ 'updated': posts[0].time }, function() {
-          onsuccess(request.statusText);
-        });
-      }
-      else {
-        onerror(request.statusText);
-      }
-    }
-  };
-  request.send(null);
+  return $.get('https://api.pinboard.in/v1/posts/all', params).pipe(function(result, statusText) {
+    var posts = JSON.parse(result);
+    return $.when(
+      Pinboard.store(posts, !fromDt), Pinboard.set({ 'updated': posts[0].time })
+    ).pipe(function() {
+      return statusText;
+    });
+  });
 };
 
-Pinboard.login = function(token, onsuccess, onerror) {
-  Pinboard.update(token,
-    function(message) {
-      var login = {
-        token: token
-      };
-      Pinboard.storage.set({ 'login': login }, function() {
-        Pinboard.requestAutoUpdate(Pinboard.UPDATE_INTERVAL);
-        onsuccess(message);
-      });
-    },
-    onerror);
+Pinboard.login = function(token) {
+  return Pinboard.update(token).pipe(function(message) {
+    var login = { token: token };
+    return Pinboard.set({ 'login': login }).pipe(function() {
+      Pinboard.requestAutoUpdate(Pinboard.UPDATE_INTERVAL);
+      return message;
+    });
+  });
 };
 
 Pinboard.sortPosts = function(posts) {
+  posts = posts.filter(function(post) { return !!post; });
   posts.sort(function(a, b) {
     if(a.time < b.time) {
       return 1;
@@ -171,56 +156,43 @@ Pinboard.sortPosts = function(posts) {
     else if(a.time > b.time) {
       return -1;
     }
-  return 0;
+    return 0;
   });
+  return posts;
 };
 
 Pinboard.logout = function() {
-  Pinboard.storage.clear();
   Pinboard.cancelAutoUpdate();
+  Pinboard.clear();
 };
 
-Pinboard.autoUpdate = function(onsuccess, onerror, force) {
-  Pinboard.storage.get([ 'login', 'updated' ], function(data) {
+Pinboard.autoUpdate = function(force) {
+  return Pinboard.get([ 'login', 'updated' ]).pipe(function(data) {
     if((!data && data.login)) {
-      return;
+      return $.Deferred().reject('not logged in');
     }
-    var fromDt = !force ? data.updated : undefined;
-    Pinboard.update(data.login.token,
-      function(message) {
-        localStorage.retryCount = 0;
-        Pinboard.requestAutoUpdate(Pinboard.UPDATE_INTERVAL);
-        if(onsuccess) {
-          onsuccess(message);
-        }
-      },
-      function(message) {
-        if(localStorage.retryCount <= 12) {
-          localStorage.retryCount += 1;
-        }
-        Pinboard.requestAutoUpdate(localStorage.retryCount * Pinboard.RETRY_DELAY);
-        if(onerror) {
-          onerror(message);
-        }
-      }, fromDt);
+    return Pinboard.update(data.login.token, !force && data.updated).pipe(function(message) {
+      localStorage.retryCount = 0;
+      Pinboard.requestAutoUpdate(Pinboard.UPDATE_INTERVAL);
+      return message;
+    },
+    function(message) {
+      if(localStorage.retryCount <= 12) {
+        localStorage.retryCount += 1;
+      }
+      Pinboard.requestAutoUpdate(localStorage.retryCount * Pinboard.RETRY_DELAY);
+      return message;
+    });
   });
 };
 
-Pinboard.forceUpdate = function(onsuccess, onerror) {
-  Pinboard.autoUpdate(onsuccess, onerror, true);
+Pinboard.forceUpdate = function() {
+  return Pinboard.autoUpdate(true);
 };
 
-Pinboard.loginRequired = function(onloggedin, onnotloggedin) {
-  Pinboard.loggedIn(function(user) {
-    if(onloggedin) {
-      onloggedin(user);
-    }
-  },
-  function() {
-    chrome.tabs.create({ url: chrome.extension.getURL('/login.html') });
-    if(onnotloggedin) {
-      onnotloggedin();
-    }
+Pinboard.loginRequired = function() {
+  return Pinboard.loggedIn().fail(function() {
+    chrome.tabs.create({ url: chrome.runtime.getURL('/login.html') });
   });
 };
 
@@ -235,8 +207,8 @@ Pinboard.cancelAutoUpdate = function() {
 Pinboard.startup = function() {
   localStorage.retryCount = 0;
 
-  Pinboard.loginRequired(function() {
-    Pinboard.autoUpdate(undefined, undefined, true);
+  return Pinboard.loginRequired().pipe(function() {
+    return Pinboard.autoUpdate(true);
   });
 };
 

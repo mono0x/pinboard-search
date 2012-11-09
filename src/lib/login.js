@@ -21,8 +21,11 @@
  */
 
 $(function() {
-  var background = chrome.extension.getBackgroundPage();
-  var Pinboard = background.Pinboard;
+  var backgroundPage = function() {
+    var deferred = $.Deferred();
+    chrome.runtime.getBackgroundPage(deferred.resolve);
+    return deferred.promise();
+  };
 
   $('form').submit(function() {
     var token = $('input[name="token"]').val();
@@ -34,15 +37,16 @@ $(function() {
     $('input[type="submit"]').prop('disabled', true);
     $('#message').text('Authorizing...');
 
-    Pinboard.login(token,
-      function(message) {
-        $('input[type="submit"]').prop('disabled', false);
-        $('#message').text(message);
-      },
-      function(message) {
-        $('input[type="submit"]').prop('disabled', false);
-        $('#message').text(message);
-      });
+    backgroundPage().pipe(function(background) {
+      return background.Pinboard.login(token);
+    }).then(function(message) {
+      $('input[type="submit"]').prop('disabled', false);
+      $('#message').text(message);
+    },
+    function(message) {
+      $('input[type="submit"]').prop('disabled', false);
+      $('#message').text(message);
+    });
 
     return false;
   });

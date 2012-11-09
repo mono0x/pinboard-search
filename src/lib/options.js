@@ -21,21 +21,26 @@
  */
 
 $(function() {
+  var backgroundPage = function() {
+    var deferred = $.Deferred();
+    chrome.runtime.getBackgroundPage(deferred.resolve);
+    return deferred.promise();
+  };
 
   var updateStatus = function(busy) {
-    chrome.runtime.getBackgroundPage(function(background) {
-      background.Pinboard.loggedIn(function(user) {
-        $('#status').text('You are logged in as ' + user + '.');
-        $('#login').prop('disabled', true);
-        $('#logout').prop('disabled', !!busy);
-        $('#update').prop('disabled', !!busy);
-      },
-      function() {
-        $('#status').text('You are not logged in.');
-        $('#login').prop('disabled', !!busy);
-        $('#logout').prop('disabled', true);
-        $('#update').prop('disabled', !!busy);
-      });
+    backgroundPage().pipe(function(background) {
+      return background.Pinboard.loggedIn();
+    }).then(function(user) {
+      $('#status').text('You are logged in as ' + user + '.');
+      $('#login').prop('disabled', true);
+      $('#logout').prop('disabled', !!busy);
+      $('#update').prop('disabled', !!busy);
+    },
+    function() {
+      $('#status').text('You are not logged in.');
+      $('#login').prop('disabled', !!busy);
+      $('#logout').prop('disabled', true);
+      $('#update').prop('disabled', true);
     });
   };
   updateStatus();
@@ -45,32 +50,31 @@ $(function() {
   };
 
   $('#login').click(function() {
-    chrome.runtime.getBackgroundPage(function(background) {
+    backgroundPage().done(function(background) {
       background.Pinboard.loginRequired();
     });
     return false;
   });
   $('#update').click(function() {
-    chrome.runtime.getBackgroundPage(function(background) {
-      background.Pinboard.loginRequired(function() {
-        m('Updating...');
-        updateStatus(true);
-        background.Pinboard.forceUpdate(function(message) {
-          updateStatus(false);
-          m(message);
-        },
-        function(message) {
-          updateStatus(false);
-          m(message);
-        });
+    backgroundPage().pipe(function(background) {
+      m('Updating...');
+      updateStatus(true);
+      return background.Pinboard.loginRequired().pipe(function() {
+        return background.Pinboard.forceUpdate();
       });
+    }).then(function(message) {
+      updateStatus(false);
+      m(message);
+    }, function(message) {
+      updateStatus(false);
+      m(message);
     });
     return false;
   });
 
   $('#logout').click(function() {
     if(confirm('Do you want to logout?')) {
-      chrome.runtime.getBackgroundPage(function(background) {
+      backgroundPage().done(function(background) {
         background.Pinboard.logout();
       });
       updateStatus();
