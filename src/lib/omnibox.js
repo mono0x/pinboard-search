@@ -145,12 +145,14 @@ chrome.omnibox.onInputEntered.addListener(function(text) {
       chrome.tabs.update(tab.id, { url: text });
     });
   }
-  else if(text == currentQuery) {
-    if(searchResult.length > currentOffset) {
-      chrome.tabs.getSelected(null, function(tab) {
-        chrome.tabs.update(tab.id, { url: searchResult[currentOffset].href });
-      });
-    }
+  else {
+    chrome.tabs.getSelected(null, function(tab) {
+      var params = {
+        query: text,
+        mine: 'Search Mine'
+      };
+      chrome.tabs.update(tab.id, { url: 'https://pinboard.in/search/?' + Utils.buildQuery(params) });
+    });
   }
   postsCache = undefined;
 });
