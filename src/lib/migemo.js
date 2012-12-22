@@ -20,15 +20,15 @@
  * THE SOFTWARE.
  */
 
-var Migemo = {};
+var Migemo = (function() {
 
-Migemo.EXTENSION_ID = 'pocnedlaincikkkcmlpcbipcflgjnjlj';
+var EXTENSION_ID = 'pocnedlaincikkkcmlpcbipcflgjnjlj';
 
-Migemo.query = function(q) {
+var query = function(q) {
   var deferred = $.Deferred();
   var params = { action: 'getRegExpString', query: q };
   try {
-    chrome.extension.sendRequest(Migemo.EXTENSION_ID, params, function(response) {
+    chrome.extension.sendRequest(EXTENSION_ID, params, function(response) {
       if(chrome.extension.lastError) {
         deferred.reject(chrome.extension.lastError);
       }
@@ -42,3 +42,9 @@ Migemo.query = function(q) {
   }
   return deferred.promise();
 };
+
+return {
+  query: query
+};
+
+})();
