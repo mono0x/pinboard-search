@@ -9,6 +9,7 @@
       "lib/utils.js",
       "lib/pinboard.js",
       "lib/migemo.js",
+      "lib/search.js",
       "lib/omnibox.js"
     ],
     "persistent": false

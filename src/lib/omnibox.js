@@ -21,10 +21,7 @@
  */
 (function() {
 
-var currentQuery = null;
-var searchResult = [];
-var searchOffset = 0;
-var currentOffset = 0;
+var search;
 
 var entities = {
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
@@ -46,87 +43,30 @@ var createSuggest = function(post, highlight) {
   };
 };
 
-var parseQuery = function(query, migemo) {
-  if(migemo) {
-    return Migemo.query(currentQuery).pipe(function(result) {
-      if(!result) {
-        return $.Deferred().reject();
-      }
-      return result.split(/(?:\\s\*)+/).map(function(part) {
-        return new RegExp(part, 'i');
-      });
-    }).pipe(null, function() {
-      return parseQuery(query, false);
-    });
-  }
-  else {
-    var deferred = $.Deferred();
-    var split = currentQuery.split(/\s+/);
-    if(split.length > 0) {
-      deferred.resolve(split.map(function(word) {
-        return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
-      }));
-    }
-    else {
-      deferred.reject();
-    }
-    return deferred.promise();
-  }
-};
-
-var search = function(posts, text, suggest, migemo) {
-  var post, str, split, matcher;
-  var limit = 5;
-  var offset = 0;
-
-  if(!text.match(/^(.*?[^\.].*?)\s*(\.*)$/)) {
-    return;
-  }
-
-  offset = currentOffset = RegExp.$2.length * limit;
-  if(currentQuery != RegExp.$1) {
-    currentQuery = RegExp.$1;
-    searchResult = [];
-    searchOffset = 0;
-  }
-
-  parseQuery(currentQuery, migemo).done(function(query) {
-    var highlight = new RegExp(query.map(function(word) {
-      return word.source;
-    }).join('|'), 'ig');
-
-    if(searchResult.length < offset + limit) {
-      matcher = function(q) { return str.match(q); };
-      while(searchOffset < posts.length) {
-        post = posts[searchOffset];
-        searchOffset += 1;
-
-        str = post.description + post.tags + post.extended;
-        if(query.every(matcher)) {
-          searchResult.push(post);
-          if(searchResult.length >= offset + limit) {
-            break;
-          }
-        }
-      }
-    }
-
-    suggest(searchResult.slice(offset, offset + limit).map(function(post) {
-      return createSuggest(post, highlight);
-    }));
-  });
-};
-
 chrome.omnibox.setDefaultSuggestion({
   description: 'Search my posts for <match>%s</match>'
 });
 
 chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
-  $.when(
-    Pinboard.posts(),
-    Pinboard.get([ 'enable_migemo' ])
-  ).done(function(posts, data) {
-    search(posts, text, suggest, data.enable_migemo);
+  var limit = 5;
+  var query;
+  var offset = 0;
+
+  if(!text.match(/^(.*?[^\.].*?)\s*(\.*)$/)) {
+    return;
+  }
+  query = RegExp.$1;
+  offset = RegExp.$2.length * limit;
+
+  Pinboard.get([ 'enable_migemo' ]).pipe(function(data) {
+    if(!search) {
+      search = new Search();
+    }
+    return search.execute(query, data.enable_migemo, limit, offset);
+  }).done(function(result, highlight) {
+    suggest(result.map(function(post) {
+      return createSuggest(post, highlight);
+    }));
   });
 });
 
@@ -148,6 +88,7 @@ chrome.omnibox.onInputEntered.addListener(function(text) {
 });
 
 chrome.omnibox.onInputCancelled.addListener(function() {
+  search = undefined;
 });
 
 })();
