@@ -127,6 +127,21 @@ $(function() {
       }
     };
 
+    var open = function(e) {
+      var active = searchResult.find('.search-result-item-active');
+      var href;
+      if(active.length > 0) {
+        href = active.find('.search-result-item-link').attr('href');
+        if(e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) {
+          window.open(href);
+        }
+        else {
+          location.href = href;
+        }
+      }
+      return false;
+    };
+
     var onKeyDown = function(e) {
       switch(e.which) {
         case 38: // up
@@ -136,6 +151,11 @@ $(function() {
 
         case 40: // down
           down();
+          e.stopPropagation();
+          return false;
+
+        case 13: // Enter
+          open(e);
           e.stopPropagation();
           return false;
 
@@ -191,24 +211,25 @@ $(function() {
       }
     };
 
+    var prevScreenX = null;
+    var prevScreenY = null;
+
+    var onMouseMove = function(e) {
+      var active;
+      if(e.screenX != prevScreenX || e.screenY != prevScreenY) {
+        prevScreenX = e.screenX;
+        prevScreenY = e.screenY;
+        active = searchResult.find('.search-result-item-active');
+        if(active != this) {
+          active.removeClass('search-result-item-active');
+          $(this).addClass('search-result-item-active');
+        }
+      }
+    };
+
     queryInput.on('input', onInput);
     $(document).on('keydown', onKeyDown);
-
-    mainForm.on('submit', function() {
-      var active = searchResult.find('.search-result-item-active');
-      if(active.length > 0) {
-        location.href = active.find('.search-result-item-link').attr('href');
-      }
-      return false;
-    });
-
-    $(document).on('hover', '.search-result-item', function() {
-      var active = searchResult.find('.search-result-item-active');
-      if(active != this) {
-        active.removeClass('search-result-item-active');
-        $(this).addClass('search-result-item-active');
-      }
-    });
+    $(document).on('mousemove', '.search-result-item', onMouseMove);
 
     if(params.query) {
       queryInput.val(params.query);
