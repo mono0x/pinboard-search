@@ -22,6 +22,8 @@
 
 (function() {
 
+var SEARCH_LIMIT = 100;
+
 $(function() {
   var sandbox = (function() {
     var iframe = null;
@@ -72,6 +74,36 @@ $(function() {
     var searchResult = $('#search-result');
     var mainForm = $('#main-form');
 
+    var sequence = 0;
+
+    var searchNext = function(query, migemo, offset, seq) {
+      return search.execute(query, migemo, SEARCH_LIMIT, offset).pipe(function(result) {
+        return $.when(result, sandbox.jsrender('search-result-item-template', result));
+      }).pipe(function(result, html) {
+        if(sequence != seq) {
+          return $.Deferred().reject();
+        }
+        if(offset == 0) {
+          searchResult.html(html);
+          searchResult.find('.search-result-item:first-child').addClass('search-result-item-active');
+        }
+        else {
+          searchResult.append(html);
+        }
+        if(result.length == SEARCH_LIMIT) {
+          return searchNext(query, migemo, offset + SEARCH_LIMIT, seq);
+        }
+        else {
+          return $.Deferred().resolve();
+        }
+      }, function() {
+        if(offset == 0) {
+          searchResult.empty();
+        }
+        return $.Deferred().resolve();
+      });
+    };
+
     var onInput = function() {
       var queryString = queryInput.val();
       if(queryString != currentQueryString) {
@@ -81,14 +113,7 @@ $(function() {
           if(!search) {
             search = new background.Search();
           }
-          return search.execute(queryString, data.enable_migemo, 100);
-        }).always(function() {
-          searchResult.empty();
-        }).pipe(function(result, highlight) {
-          return sandbox.jsrender('search-result-item-template', result);
-        }).done(function(html) {
-          searchResult.html(html);
-          searchResult.find('.search-result-item:first-child').addClass('search-result-item-active');
+          return searchNext(queryString, data.enable_migemo, 0, ++sequence);
         });
       }
     };

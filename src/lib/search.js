@@ -107,6 +107,10 @@ var Search = function() {
       }
 
       slice = limit ? result.slice(offset, offset + limit) : result;
+      if(slice.length == 0) {
+        return $.Deferred().reject();
+      }
+
       highlight = new RegExp(query.map(function(word) {
         return word.source;
       }).join('|'), 'ig');
