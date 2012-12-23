@@ -75,10 +75,17 @@ $(function() {
     var mainForm = $('#main-form');
 
     var sequence = 0;
+    var trigger = null;
 
     var searchNext = function(query, migemo, offset, seq) {
       return search.execute(query, migemo, SEARCH_LIMIT, offset).pipe(function(result) {
         return $.when(result, sandbox.jsrender('search-result-item-template', result));
+      }, function() {
+        if(offset == 0) {
+          searchResult.empty();
+          return $.Deferred().reject();
+        }
+        return $.Deferred().resolve();
       }).pipe(function(result, html) {
         if(sequence != seq) {
           return $.Deferred().reject();
@@ -91,14 +98,12 @@ $(function() {
           searchResult.append(html);
         }
         if(result.length == SEARCH_LIMIT) {
-          return searchNext(query, migemo, offset + SEARCH_LIMIT, seq);
+          trigger = $.Deferred().done(function() {
+            searchNext(query, migemo, offset + SEARCH_LIMIT, seq);
+          });
         }
         else {
-          return $.Deferred().resolve();
-        }
-      }, function() {
-        if(offset == 0) {
-          searchResult.empty();
+          trigger = null;
         }
         return $.Deferred().resolve();
       });
@@ -109,11 +114,15 @@ $(function() {
       if(queryString != currentQueryString) {
         currentQueryString = queryString;
 
-        background.Pinboard.get([ 'enable_migemo' ]).pipe(function(data) {
+        $(window).off('scroll', onScroll);
+
+        background.Pinboard.get([ 'enable_migemo' ]).done(function(data) {
           if(!search) {
             search = new background.Search();
           }
-          return searchNext(queryString, data.enable_migemo, 0, ++sequence);
+          searchNext(queryString, data.enable_migemo, 0, ++sequence);
+        }).done(function() {
+          $(window).scrollTop(0).on('scroll', onScroll);
         });
       }
     };
@@ -135,6 +144,17 @@ $(function() {
       }
       return true;
     }
+
+    var onScroll = function() {
+      var top = $(window).scrollTop();
+      var height = searchResult.height();
+      if(top > height - 1000) {
+        if(trigger) {
+          trigger.resolve();
+          trigger = null;
+        }
+      }
+    };
 
     var up = function() {
       var active = searchResult.find('.search-result-item-active');
