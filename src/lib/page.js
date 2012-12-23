@@ -70,7 +70,7 @@ $(function() {
     var params = Utils.parseQuery();
 
     var searchHeader = $('#search-header');
-    var queryInput = $('input[name="query"]');
+    var queryInput = $('#query-input');
     var searchResult = $('#search-result');
     var mainForm = $('#main-form');
 
