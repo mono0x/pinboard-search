@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script type="text/javascript" src="/lib/jsrender.js"></script>
+    <script type="text/javascript" src="/lib/sandbox.js"></script>
+  </head>
+  <body>
+    <script id="search-result-item-template" type="text/x-jsrender">
+      <div class="search-result-item">
+        <h1 class="search-result-item-title"><a class="search-result-item-link" href="{{>href}}">{{>description}}</a></h1>
+        <p class="search-result-item-comment">{{>extended}}</p>
+        <p class="search-result-item-tags">
+          {{for tags.split(' ')}}
+            <a class="search-result-item-tag" href="/page.html?query={{>#data}}">{{>#data}}</a>
+          {{/for}}
+        </p>
+        <p class="search-result-item-footer">
+          <time class="search-result-item-time" datetime="{{>time}}">{{>~relativeTime(time)}}</time>
+        </p>
+      </div>
+    </script>
+  </body>
+</html>

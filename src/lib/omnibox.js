@@ -79,10 +79,9 @@ chrome.omnibox.onInputEntered.addListener(function(text) {
   else {
     chrome.tabs.getSelected(null, function(tab) {
       var params = {
-        query: text,
-        mine: 'Search Mine'
+        query: text
       };
-      chrome.tabs.update(tab.id, { url: 'https://pinboard.in/search/?' + Utils.buildQuery(params) });
+      chrome.tabs.update(tab.id, { url: chrome.runtime.getURL('/page.html?' + Utils.buildQuery(params)) });
     });
   }
 });
