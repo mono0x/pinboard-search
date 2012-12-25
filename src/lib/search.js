@@ -48,9 +48,9 @@ var Search = function() {
     var deferred = $.Deferred();
     var split = queryString.split(/\s+/);
     if(split.length > 0) {
-      return split.map(function(word) {
+      deferred.resolve(split.map(function(word) {
         return new RegExp(word.replace(/\W/g, '\\$&'), 'ig');
-      });
+      }));
     }
     else {
       deferred.reject();
