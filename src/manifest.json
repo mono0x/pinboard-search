@@ -3,6 +3,11 @@
   "name": "Pinboard Search",
   "version": "0.2.2",
   "description": "Search Pinboard in Omnibox",
+  "app": {
+    "launch": {
+      "local_path": "page.html"
+    }
+  },
   "background": {
     "scripts": [
       "lib/jquery-1.8.2.min.js",
