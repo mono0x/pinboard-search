@@ -12,7 +12,7 @@
         <p class="search-result-item-comment">{{>extended}}</p>
         <p class="search-result-item-tags">
           {{for tags.split(' ')}}
-            <a class="search-result-item-tag" href="/page.html?query={{>#data}}">{{>#data}}</a>
+            <a class="search-result-item-tag" href="/page.html?query=tag:{{>#data}}">{{>#data}}</a>
           {{/for}}
         </p>
         <p class="search-result-item-footer">

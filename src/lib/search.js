@@ -67,12 +67,30 @@ var Search = function() {
     }
   };
 
+  var parse = function(queryString, migemo) {
+    try {
+      return $.when.apply(null, parser.parse(queryString).map(function(item) {
+        if(typeof item == "string") {
+          return parseQuery(item, migemo);
+        }
+        else {
+          return $.Deferred().resolve(item);
+        }
+      })).pipe(function() {
+        return Array.prototype.slice.apply(arguments);
+      });
+    }
+    catch(e) {
+      return $.Deferred().reject(e);
+    }
+  };
+
   var getQuery = function(queryString, migemo) {
     if(queryString == currentQueryString) {
       return $.Deferred().resolve(queryCache);
     }
 
-    return parseQuery(queryString, migemo).done(function(query) {
+    return parse(queryString, migemo).done(function(query) {
       queryCache = query;
       currentQueryString = queryString;
       result = [];
@@ -88,10 +106,62 @@ var Search = function() {
       var post;
       var slice;
       var highlight;
+      var words;
 
       var matcher = function(p) {
-        var str = [ p.description, p.tags, p.extended ].join(' ');
-        return query.every(function(e) { return str.match(e); });
+        var stack = [];
+        var arr = [ p.description, p.tags, p.extended ];
+        query.forEach(function(item) {
+          var left, right, value;
+          if(typeof item == "number") {
+            switch(item) {
+              case Operator.AND:
+                left = stack.pop();
+                right = stack.pop();
+                stack.push(left && right);
+                break;
+              case Operator.OR:
+                left = stack.pop();
+                right = stack.pop();
+                stack.push(left || right);
+                break;
+              case Operator.MATCH:
+                value = stack.pop();
+                stack.push(value.every(function(re) {
+                  return arr.some(function(s) {
+                    return s.match(re);
+                  });
+                }));
+                break;
+              case Operator.NOT:
+                value = stack.pop();
+                stack.push(!value);
+                break;
+              case Operator.TITLE:
+                value = stack.pop();
+                stack.push(value.every(function(re) {
+                  return p.description.match(re);
+                }));
+                break;
+              case Operator.TAG:
+                value = stack.pop();
+                stack.push(value.every(function(re) {
+                  return p.tags.match(re);
+                }));
+                break;
+              case Operator.COMMENT:
+                value = stack.pop();
+                stack.push(value.every(function(re) {
+                  return p.extended.match(re);
+                }));
+                break;
+            }
+          }
+          else {
+            stack.push(item);
+          }
+        });
+        return stack[0];
       };
 
       while(searchOffset < posts.length) {
@@ -111,9 +181,12 @@ var Search = function() {
         return $.Deferred().reject();
       }
 
-      highlight = new RegExp(query.map(function(word) {
-        return word.source;
-      }).join('|'), 'ig');
+      words = query.filter(function(item) {
+        return typeof item != "number";
+      }).map(function(item) {
+        return item.map(function(re) { return re.source; }).join('|');
+      });
+      highlight = new RegExp(words.join('|'), 'ig');
 
       return $.Deferred().resolve(slice, highlight);
     });
