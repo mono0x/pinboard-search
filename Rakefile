@@ -35,12 +35,19 @@ class ExtensionMaker
 
 end
 
+task :default => [ 'src/lib/parser.js' ] do
+end
+
+file 'src/lib/parser.js' => [ 'src/lib/parser.jison' ] do |t|
+  system "jison #{t.prerequisites[0]} -o #{t.name}"
+end
+
 namespace :extension do
-  task :make do
+  task :make => [ :default ] do
     ExtensionMaker.make
   end
 
-  task :zip do
+  task :zip => [ :default ] do
     ExtensionMaker.zip
   end
 end

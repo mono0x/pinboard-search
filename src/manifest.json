@@ -10,6 +10,7 @@
       "lib/pinboard.js",
       "lib/migemo.js",
       "lib/search.js",
+      "lib/parser.js",
       "lib/omnibox.js"
     ]
   },
