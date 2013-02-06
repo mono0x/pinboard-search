@@ -107,7 +107,7 @@ var Search = function() {
       }
 
       slice = limit ? result.slice(offset, offset + limit) : result;
-      if(slice.length == 0) {
+      if(slice.length === 0) {
         return $.Deferred().reject();
       }
 
@@ -119,3 +119,27 @@ var Search = function() {
     });
   };
 };
+
+(function() {
+  chrome.extension.onConnect.addListener(function(port) {
+    var search = new Search();
+
+    port.onMessage.addListener(function(message) {
+      var query = message.query;
+      var limit = message.limit;
+      var offset = message.offset;
+      Pinboard.get([ 'enable_migemo' ]).pipe(function(data) {
+        return search.execute(query, data.enable_migemo, limit, offset);
+      }).done(function(result, highlight) {
+        port.postMessage({
+          result: result,
+          highlight: highlight
+        });
+      }).fail(function() {
+        port.postMessage({
+          result: []
+        });
+      });
+    });
+  });
+})();
