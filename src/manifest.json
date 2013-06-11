@@ -5,7 +5,7 @@
   "description": "Search Pinboard in Omnibox",
   "background": {
     "scripts": [
-      "lib/jquery-1.8.2.min.js",
+      "lib/jquery-2.0.2.min.js",
       "lib/utils.js",
       "lib/pinboard.js",
       "lib/migemo.js",
