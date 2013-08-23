@@ -28,7 +28,7 @@ var query = function(q) {
   var deferred = $.Deferred();
   var params = { action: 'getRegExpString', query: q };
   try {
-    chrome.extension.sendMessage(EXTENSION_ID, params, function(response) {
+    chrome.runtime.sendMessage(EXTENSION_ID, params, function(response) {
       if(chrome.extension.lastError) {
         deferred.reject(chrome.extension.lastError);
       }
