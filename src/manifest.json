@@ -11,8 +11,7 @@
       "lib/migemo.js",
       "lib/search.js",
       "lib/omnibox.js"
-    ],
-    "persistent": false
+    ]
   },
   "sandbox": {
     "pages": [
