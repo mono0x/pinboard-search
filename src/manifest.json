@@ -24,7 +24,6 @@
     "keyword": "p"
   },
   "permissions": [
-    "tabs",
     "storage",
     "alarms",
     "unlimitedStorage",
