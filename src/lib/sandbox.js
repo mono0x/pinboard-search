@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-jsviews.helpers({
+jsrender.views.helpers({
   relativeTime: function(datetime) {
     var date = new Date(datetime);
     var diff = new Date() - date;
@@ -53,12 +53,12 @@ window.onmessage = function(req) {
   var res;
   switch(req.data.action) {
   case 'jsrender':
-    jsviews.templates({
+    jsrender.templates({
       'search-result-item-template': document.getElementById('search-result-item-template').innerHTML
     });
     res = {
       sequence: req.data.sequence,
-      html: jsviews.render[req.data.template](req.data.data)
+      html: jsrender.render[req.data.template](req.data.data)
     };
     window.top.postMessage(res, '*');
     break;
